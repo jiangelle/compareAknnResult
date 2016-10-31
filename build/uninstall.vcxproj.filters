@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\jurcol\Desktop\Compare_experiemt\CMakeLists.txt" />
+    <CustomBuild Include="C:\Users\jurcol\Desktop\Compare_experiemt\build\CMakeFiles\dc4429267e87876043b412742871c29e\uninstall.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\jurcol\Desktop\Compare_experiemt\build\CMakeFiles\uninstall" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{EE7D2E29-314B-3AF1-B491-0EF80863C8F5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

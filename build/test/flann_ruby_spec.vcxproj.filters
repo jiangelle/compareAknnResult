@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\jurcol\Desktop\Compare_experiemt\test\CMakeLists.txt" />
+    <CustomBuild Include="C:\Users\jurcol\Desktop\Compare_experiemt\build\CMakeFiles\5f13ca6dd950f351d9037fd7124ab6f5\flann_ruby_spec.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\jurcol\Desktop\Compare_experiemt\build\test\CMakeFiles\flann_ruby_spec" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{EE7D2E29-314B-3AF1-B491-0EF80863C8F5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

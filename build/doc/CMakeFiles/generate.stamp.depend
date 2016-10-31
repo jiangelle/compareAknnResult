@@ -1,0 +1,6 @@
+# CMake generation dependency list for this directory.
+C:/Users/jurcol/Desktop/Compare_experiemt/doc/CMakeLists.txt
+F:/Cmake/share/cmake-3.5/Modules/FindLATEX.cmake
+F:/Cmake/share/cmake-3.5/Modules/FindPackageHandleStandardArgs.cmake
+F:/Cmake/share/cmake-3.5/Modules/FindPackageMessage.cmake
+F:/Cmake/share/cmake-3.5/Modules/CMakeParseArguments.cmake
