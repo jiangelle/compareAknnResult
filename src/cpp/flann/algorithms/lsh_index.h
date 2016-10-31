@@ -35,6 +35,7 @@
 #ifndef FLANN_LSH_INDEX_H_
 #define FLANN_LSH_INDEX_H_
 
+#include <sstream>
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -295,7 +296,7 @@ public:
 #pragma omp for schedule(static) reduction(+:count)
 				for (int i = 0; i < (int)queries.rows; i++) {
 					resultSet.clear();
-					findNeighbors(resultSet, queries[i], params);
+					findNeighbors(resultSet, queries[i], params, knn);
 					size_t n = std::min(resultSet.size(), knn);
 					indices[i].resize(n);
 					dists[i].resize(n);
@@ -338,6 +339,7 @@ public:
      *     result = the result object in which the indices of the nearest-neighbors are stored
      *     vec = the vector for which to search the nearest neighbors
      *     maxCheck = the maximum number of restarts (in a best-bin-first manner)
+	 *     knn = the count of neighbors need to find
      */
     void findNeighbors(ResultSet<DistanceType>& result, const ElementType* vec, const SearchParams& /*searchParams*/) const
     {
@@ -552,6 +554,7 @@ void LshIndex<L2_Simple<float>>::getNeighbors(const float* vec, ResultSet<float>
 {
 	typename std::vector<lsh::LshTable<float> >::const_iterator table = tables_.begin();
 	typename std::vector<lsh::LshTable<float> >::const_iterator table_end = tables_.end();
+
 	for (; table != table_end; ++table) {
 		size_t key = table->getKey(vec);
 		const lsh::Bucket* bucket = table->getBucketFromKey(key);
@@ -563,9 +566,14 @@ void LshIndex<L2_Simple<float>>::getNeighbors(const float* vec, ResultSet<float>
 		
 		// Process the rest of the candidates
 		for (; training_index < last_training_index; ++training_index) {
-			if (removed_ && removed_points_.test(*training_index)) continue;
 			// Compute the Euclidean distance
 			float euclidean_distance = distance_(vec, points_[*training_index], veclen_);
+			if (euclidean_distance < 1) {
+				stringstream ss;
+				ss << "euclidean distance < 1 : ";
+				ss << euclidean_distance;
+				throw ss.str();
+			}
 			//printf("euclidean_distance:%f\n", euclidean_distance);
 			result.addPoint(euclidean_distance, *training_index);
 		}

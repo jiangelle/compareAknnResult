@@ -567,11 +567,15 @@ inline const Bucket* LshTable<float>::getBucketFromKey(BucketKey key) const
 
 template<>
 inline size_t LshTable<float>::getKey(const float* feature) const {
-	int sum = 0;
+	float sum = 0;
 	for (int i = 0; i < random_line.size(); i++) {
 		sum += feature[i] * random_line[i];
 	}
-	return floor(abs(sum + random_offset) / bucket_size);
+	int ratio = floor(abs(sum + random_offset) / bucket_size);
+	if (ratio >= bucket_count) {
+		ratio = bucket_count;
+	}
+	return ratio;
 }
 
 template<>

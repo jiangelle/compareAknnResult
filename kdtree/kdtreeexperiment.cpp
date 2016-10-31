@@ -24,17 +24,19 @@ void printStatistics(const vector<vector<float>>& distancesVector) {
 	vector<float> meanDisVector;
 	vector<float> stdVarDistanceVector;
 	for (size_t neighbor_index = 0; neighbor_index < distancesVector[0].size(); ++neighbor_index) {
-		minDisVector.push_back(FLT_MAX);
-		maxDisVector.push_back(-FLT_MAX);
+		minDisVector.push_back(FLT_MAX/10);
+		maxDisVector.push_back(-FLT_MAX/10);
 		meanDisVector.push_back(0);
 		stdVarDistanceVector.push_back(0);
 	}
 	for (size_t neighbor_index = 0; neighbor_index < distancesVector[0].size(); ++neighbor_index) {
 		for (size_t query_row = 0; query_row < distancesVector.size(); ++query_row) {
-			float distance = distancesVector[query_row][neighbor_index];
-			minDisVector[neighbor_index] = min(minDisVector[neighbor_index], distance);
-			maxDisVector[neighbor_index] = max(maxDisVector[neighbor_index], distance);
-			meanDisVector[neighbor_index] += distance;
+			if (neighbor_index < distancesVector[query_row].size()) {
+				float distance = distancesVector[query_row][neighbor_index];
+				minDisVector[neighbor_index] = min(minDisVector[neighbor_index], distance);
+				maxDisVector[neighbor_index] = max(maxDisVector[neighbor_index], distance);
+				meanDisVector[neighbor_index] += distance;
+			}
 		}
 		meanDisVector[neighbor_index] /= distancesVector.size();
 	}
@@ -78,33 +80,37 @@ void printGroundTruthResult(const Matrix<float>& query, const Matrix<float>& bas
 	printStatistics(groundTruthDistances);
 }
 
-void printResult(const flann::Matrix<float>& gt_dists) {
+void printResult(const flann::Matrix<float>& dists, const Matrix<size_t>& indices) {
 	vector<vector<float>> floatDistances;
-	for (int i = 0; i < gt_dists.rows; i++) {
+	for (int i = 0; i < dists.rows; i++) {
 		floatDistances.push_back(vector<float>());
-		for (int j = 0; j < gt_dists.cols; j++) {
-			floatDistances[i].push_back(sqrt(gt_dists[i][j]));
+		for (int j = 0; j < dists.cols; j++) {
+			if (indices[i][j] != -1) {
+				floatDistances[i].push_back(sqrt(dists[i][j]));
+			}
 		}
 		sort(floatDistances[i].begin(), floatDistances[i].end());
 	}
 	printStatistics(floatDistances);
 }
 
-void buildAndSearch(Index<Distance> index, const Matrix<float>& queryall, int knn) {
-	Matrix<int> indices(new int[queryall.rows*knn], queryall.rows, knn);
+void buildAndSearch(Index<Distance> index, const Matrix<float>& queryall, int knn, int checks) {
+	Matrix<size_t> indices(new size_t[queryall.rows*knn], queryall.rows, knn);
 	Matrix<float> dists(new float[queryall.rows*knn], queryall.rows, knn);
+	memset(indices.ptr(), (size_t)-1, queryall.rows*knn*sizeof(size_t));
 	clock_t starttime = clock();
 	index.buildIndex();
 	printf("build index done, %d ms\n", elapsedMilliseconds(starttime));
 	starttime = clock();
-	index.knnSearch(queryall, indices, dists, knn, flann::SearchParams(128));
+	int query_all_neighbor_count = index.knnSearch(queryall, indices, dists, knn, flann::SearchParams(checks));
+	printf("query_all_neighbor_count=%d\n", query_all_neighbor_count);
 	printf("search knn done, %d ms\n", elapsedMilliseconds(starttime));
-	printResult(dists);
+	printResult(dists, indices);
 }
 
 void main(int argc, char** argv)
 {
-	bool isSift = false;
+	bool isSift = true;
 	clock_t starttime = clock();
 	string directory_prefix = "../../";
 	string base_filename = directory_prefix + (isSift ? "sift_base.fvecs" : "gist_base.fvecs");
@@ -112,20 +118,27 @@ void main(int argc, char** argv)
 	string groundtruth_filename = directory_prefix + (isSift ? "sift_groundtruth.ivecs" : "gist_groundtruth.ivecs");
 	Matrix<float> dataset = TexmexDataSetReader::readFMatrix(base_filename);
 	Matrix<float> queryall = TexmexDataSetReader::readFMatrix(query_filename);
-	vector<vector<size_t>> groundTruthIndices = TexmexDataSetReader::readIvecs(groundtruth_filename);
 	printf("read data done, %d ms\n", elapsedMilliseconds(starttime));
 	printf("data rows=%d, cols=%d\n", dataset.rows, dataset.cols);
 	printf("query rows=%d, cols=%d\n", queryall.rows, queryall.cols);
+	vector<vector<size_t>> groundTruthIndices = TexmexDataSetReader::readIvecs(groundtruth_filename);
 	int knn = groundTruthIndices[0].size();
 	printf("neighbor count=%d\n", knn);
-	// construct an randomized kd-tree index using 4 kd-trees
-	Index<Distance> kdTreeIndex(dataset, KDTreeIndexParams(4));
 	printf("ground truth:\n");
 	printGroundTruthResult(queryall, dataset, groundTruthIndices);
-	printf("kdtree:\n");
-	buildAndSearch(kdTreeIndex, queryall, knn);
-	Index<Distance> lshIndex(dataset, LshIndexParams(4,100));
-	printf("lsh:\n");
-	buildAndSearch(lshIndex, queryall, knn);
+	/*
+	{
+		Index<Distance> kdTreeIndex(dataset, KDTreeIndexParams(1));
+		printf("kdtree:\n");
+		buildAndSearch(kdTreeIndex, queryall, knn, 128);
+	}
+	*/
+	{
+		Index<Distance> lshIndex(dataset, LshIndexParams(2, 1000, 0));
+		printf("lsh:\n");
+		buildAndSearch(lshIndex, queryall, knn, -1);
+	}
+	delete[] dataset.ptr();
+	delete[] queryall.ptr();
 	system("pause");
 }
