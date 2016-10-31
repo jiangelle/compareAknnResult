@@ -42,6 +42,7 @@
 #include <map>
 #include <vector>
 
+
 #include "flann/general.h"
 #include "flann/algorithms/nn_index.h"
 #include "flann/util/matrix.h"
@@ -49,6 +50,7 @@
 #include "flann/util/heap.h"
 #include "flann/util/lsh_table.h"
 #include "flann/util/allocator.h"
+#include "PrintProgress.hpp"
 #include "flann/util/random.h"
 #include "flann/util/saving.h"
 #include <flann/algorithms/dist.h>
@@ -257,13 +259,21 @@ public:
         		KNNResultSet<DistanceType> resultSet(knn);
 #pragma omp for schedule(static) reduction(+:count)
         		for (int i = 0; i < (int)queries.rows; i++) {
+					
+					if (i % 100 == 0 || i == queries.rows - 1) {
+//						PrintProgress::PrintProgress(1.0 * (i + 1) / queries.rows);
+					}
+					
         			resultSet.clear();
+					clock_t startTime = clock();
         			findNeighbors(resultSet, queries[i], params);
+					//printf("%d/%d, findNeighbors, %d ms\n", i+1, queries.rows, 1000L*(clock()-startTime)/CLOCKS_PER_SEC);
         			size_t n = std::min(resultSet.size(), knn);
         			resultSet.copy(indices[i], dists[i], n, params.sorted);
         			indices_to_ids(indices[i], indices[i], n);
         			count += n;
         		}
+				printf("\n");
         	}
         }
 
@@ -403,90 +413,6 @@ private:
             fill_xor_mask(new_key, index, level - 1, xor_masks);
         }
     }
-
-    /** Performs the approximate nearest-neighbor search.
-     * @param vec the feature to analyze
-     * @param do_radius flag indicating if we check the radius too
-     * @param radius the radius if it is a radius search
-     * @param do_k flag indicating if we limit the number of nn
-     * @param k_nn the number of nearest neighbors
-     * @param checked_average used for debugging
-     */
-	/*
-    void getNeighbors(const ElementType* vec, bool do_radius, float radius, bool do_k, unsigned int k_nn,
-                      float& checked_average)
-    {
-        static std::vector<ScoreIndexPair> score_index_heap;
-
-        if (do_k) {
-            unsigned int worst_score = std::numeric_limits<unsigned int>::max();
-            typename std::vector<lsh::LshTable<ElementType> >::const_iterator table = tables_.begin();
-            typename std::vector<lsh::LshTable<ElementType> >::const_iterator table_end = tables_.end();
-            for (; table != table_end; ++table) {
-                size_t key = table->getKey(vec);
-                std::vector<lsh::BucketKey>::const_iterator xor_mask = xor_masks_.begin();
-                std::vector<lsh::BucketKey>::const_iterator xor_mask_end = xor_masks_.end();
-                for (; xor_mask != xor_mask_end; ++xor_mask) {
-                    size_t sub_key = key ^ (*xor_mask);
-                    const lsh::Bucket* bucket = table->getBucketFromKey(sub_key);
-                    if (bucket == 0) continue;
-
-                    // Go over each descriptor index
-                    std::vector<lsh::FeatureIndex>::const_iterator training_index = bucket->begin();
-                    std::vector<lsh::FeatureIndex>::const_iterator last_training_index = bucket->end();
-                    DistanceType hamming_distance;
-
-                    // Process the rest of the candidates
-                    for (; training_index < last_training_index; ++training_index) {
-                    	if (removed_ && removed_points_.test(*training_index)) continue;
-                        hamming_distance = distance_(vec, points_[*training_index].point, veclen_);
-
-                        if (hamming_distance < worst_score) {
-                            // Insert the new element
-                            score_index_heap.push_back(ScoreIndexPair(hamming_distance, training_index));
-                            std::push_heap(score_index_heap.begin(), score_index_heap.end());
-
-                            if (score_index_heap.size() > (unsigned int)k_nn) {
-                                // Remove the highest distance value as we have too many elements
-                                std::pop_heap(score_index_heap.begin(), score_index_heap.end());
-                                score_index_heap.pop_back();
-                                // Keep track of the worst score
-                                worst_score = score_index_heap.front().first;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else {
-            typename std::vector<lsh::LshTable<ElementType> >::const_iterator table = tables_.begin();
-            typename std::vector<lsh::LshTable<ElementType> >::const_iterator table_end = tables_.end();
-            for (; table != table_end; ++table) {
-                size_t key = table->getKey(vec);
-                std::vector<lsh::BucketKey>::const_iterator xor_mask = xor_masks_.begin();
-                std::vector<lsh::BucketKey>::const_iterator xor_mask_end = xor_masks_.end();
-                for (; xor_mask != xor_mask_end; ++xor_mask) {
-                    size_t sub_key = key ^ (*xor_mask);
-                    const lsh::Bucket* bucket = table->getBucketFromKey(sub_key);
-                    if (bucket == 0) continue;
-
-                    // Go over each descriptor index
-                    std::vector<lsh::FeatureIndex>::const_iterator training_index = bucket->begin();
-                    std::vector<lsh::FeatureIndex>::const_iterator last_training_index = bucket->end();
-                    DistanceType hamming_distance;
-
-                    // Process the rest of the candidates
-                    for (; training_index < last_training_index; ++training_index) {
-                    	if (removed_ && removed_points_.test(*training_index)) continue;
-                        // Compute the Hamming distance
-                        hamming_distance = distance_(vec, points_[*training_index].point, veclen_);
-                        if (hamming_distance < radius) score_index_heap.push_back(ScoreIndexPair(hamming_distance, training_index));
-                    }
-                }
-            }
-        }
-    }
-	*/
 
     /** Performs the approximate nearest-neighbor search.
      * This is a slower version than the above as it uses the ResultSet

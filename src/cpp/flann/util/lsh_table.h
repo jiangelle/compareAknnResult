@@ -354,13 +354,12 @@ private:
 
 	// Members only for float
 	std::vector<float> random_line;
-	std::vector<float> data_projections;
 	float random_offset;
 	float bucket_size;
 	size_t feature_size;
 	size_t bucket_count;
-	float min_feature_value = FLT_MAX;
-	float max_feature_value = -FLT_MAX;
+	float min_projection_value = FLT_MAX;
+	float max_projection_value = -FLT_MAX;
 	void computeBucketSize(unsigned int feature_size, const vector<ElementType*> feature_vector) {
 	}
 };
@@ -532,11 +531,10 @@ inline void LshTable<float>::computeBucketSize(unsigned int feature_size, const 
 		for (int i = 0; i < feature_size; i++) {
 			sum += random_line[i] * data_vector[data_index][i];
 		}
-		data_projections.push_back(sum);
-		min_feature_value = min(min_feature_value, data_projections[data_index]);
-		max_feature_value = max(max_feature_value, data_projections[data_index]);
+		min_projection_value = min(min_projection_value, sum);
+		max_projection_value = max(max_projection_value, sum);
 	}
-	bucket_size = ceil((max_feature_value - min_feature_value) / bucket_count);
+	bucket_size = ceil((max_projection_value - min_projection_value) / bucket_count);
 	random_offset = randomFloat() * bucket_size;
 }
 
@@ -571,7 +569,8 @@ inline size_t LshTable<float>::getKey(const float* feature) const {
 	for (int i = 0; i < random_line.size(); i++) {
 		sum += feature[i] * random_line[i];
 	}
-	int ratio = floor(abs(sum + random_offset) / bucket_size);
+	//sum -= min_projection_value;
+	int ratio = floor(abs(sum+random_offset) / bucket_size);
 	if (ratio >= bucket_count) {
 		ratio = bucket_count;
 	}

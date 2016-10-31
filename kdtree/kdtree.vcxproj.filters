@@ -35,5 +35,8 @@
     <ClInclude Include="TexmexDataSetReader.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="PrintProgress.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

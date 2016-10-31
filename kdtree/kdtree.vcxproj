@@ -26,6 +26,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\cpp\flann\ext\lz4.h" />
     <ClInclude Include="..\src\cpp\flann\ext\lz4hc.h" />
+    <ClInclude Include="PrintProgress.hpp" />
     <ClInclude Include="TexmexDataSetReader.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -83,7 +84,7 @@
     <LibraryPath>F:\library\hdf5\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>F:\library\hdf5\include;../src/cpp;$(IncludePath)</IncludePath>
+    <IncludePath>F:\library\hdf5\include;../src/cpp;.;$(IncludePath)</IncludePath>
     <LibraryPath>F:\library\hdf5\lib\64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

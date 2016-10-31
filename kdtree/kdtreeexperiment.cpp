@@ -18,18 +18,18 @@ int elapsedMilliseconds(clock_t startTime) {
 	return 1000.0*(clock() - startTime) / CLOCKS_PER_SEC;
 }
 
-void printStatistics(const vector<vector<float>>& distancesVector) {
+void printStatistics(const vector<vector<float>>& distancesVector, int knn) {
 	vector<float> minDisVector;
 	vector<float> maxDisVector;
 	vector<float> meanDisVector;
 	vector<float> stdVarDistanceVector;
-	for (size_t neighbor_index = 0; neighbor_index < distancesVector[0].size(); ++neighbor_index) {
+	for (size_t neighbor_index = 0; neighbor_index < knn; ++neighbor_index) {
 		minDisVector.push_back(FLT_MAX/10);
 		maxDisVector.push_back(-FLT_MAX/10);
 		meanDisVector.push_back(0);
 		stdVarDistanceVector.push_back(0);
 	}
-	for (size_t neighbor_index = 0; neighbor_index < distancesVector[0].size(); ++neighbor_index) {
+	for (size_t neighbor_index = 0; neighbor_index < knn; ++neighbor_index) {
 		for (size_t query_row = 0; query_row < distancesVector.size(); ++query_row) {
 			if (neighbor_index < distancesVector[query_row].size()) {
 				float distance = distancesVector[query_row][neighbor_index];
@@ -40,13 +40,15 @@ void printStatistics(const vector<vector<float>>& distancesVector) {
 		}
 		meanDisVector[neighbor_index] /= distancesVector.size();
 	}
-	for (size_t neighbor_index = 0; neighbor_index < distancesVector[0].size(); ++neighbor_index) {
+	for (size_t neighbor_index = 0; neighbor_index < knn; ++neighbor_index) {
 		for (size_t query_row = 0; query_row < distancesVector.size(); ++query_row) {
-			float distance = distancesVector[query_row][neighbor_index];
-			float diff = distance - meanDisVector[neighbor_index];
-			stdVarDistanceVector[neighbor_index] += diff*diff;
+			if (neighbor_index < distancesVector[query_row].size()) {
+				float distance = distancesVector[query_row][neighbor_index];
+				float diff = distance - meanDisVector[neighbor_index];
+				stdVarDistanceVector[neighbor_index] += diff*diff;
+			}
 		}
-		stdVarDistanceVector[neighbor_index] /= distancesVector.size() - 1;
+		stdVarDistanceVector[neighbor_index] /= distancesVector.size() - 1 == 0 ? 1 : distancesVector.size() - 1;
 		stdVarDistanceVector[neighbor_index] = sqrt(stdVarDistanceVector[neighbor_index]);
 	}
 
@@ -77,7 +79,7 @@ void printGroundTruthResult(const Matrix<float>& query, const Matrix<float>& bas
 		delete[] query_feature;
 		groundTruthDistances.push_back(distances);
 	}
-	printStatistics(groundTruthDistances);
+	printStatistics(groundTruthDistances, baseMatrix.cols);
 }
 
 void printResult(const flann::Matrix<float>& dists, const Matrix<size_t>& indices) {
@@ -91,7 +93,7 @@ void printResult(const flann::Matrix<float>& dists, const Matrix<size_t>& indice
 		}
 		sort(floatDistances[i].begin(), floatDistances[i].end());
 	}
-	printStatistics(floatDistances);
+	printStatistics(floatDistances, indices.cols);
 }
 
 void buildAndSearch(Index<Distance> index, const Matrix<float>& queryall, int knn, int checks) {
@@ -103,7 +105,6 @@ void buildAndSearch(Index<Distance> index, const Matrix<float>& queryall, int kn
 	printf("build index done, %d ms\n", elapsedMilliseconds(starttime));
 	starttime = clock();
 	int query_all_neighbor_count = index.knnSearch(queryall, indices, dists, knn, flann::SearchParams(checks));
-	printf("query_all_neighbor_count=%d\n", query_all_neighbor_count);
 	printf("search knn done, %d ms\n", elapsedMilliseconds(starttime));
 	printResult(dists, indices);
 }
@@ -126,15 +127,14 @@ void main(int argc, char** argv)
 	printf("neighbor count=%d\n", knn);
 	printf("ground truth:\n");
 	printGroundTruthResult(queryall, dataset, groundTruthIndices);
-	/*
 	{
 		Index<Distance> kdTreeIndex(dataset, KDTreeIndexParams(1));
 		printf("kdtree:\n");
 		buildAndSearch(kdTreeIndex, queryall, knn, 128);
 	}
-	*/
+	
 	{
-		Index<Distance> lshIndex(dataset, LshIndexParams(2, 1000, 0));
+		Index<Distance> lshIndex(dataset, LshIndexParams(30, 2000, 0));
 		printf("lsh:\n");
 		buildAndSearch(lshIndex, queryall, knn, -1);
 	}
