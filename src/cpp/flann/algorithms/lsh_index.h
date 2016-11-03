@@ -50,7 +50,7 @@
 #include "flann/util/heap.h"
 #include "flann/util/lsh_table.h"
 #include "flann/util/allocator.h"
-#include "PrintProgress.hpp"
+#include <PrintProgress.hpp>
 #include "flann/util/random.h"
 #include "flann/util/saving.h"
 #include <flann/algorithms/dist.h>
@@ -261,7 +261,7 @@ public:
         		for (int i = 0; i < (int)queries.rows; i++) {
 					
 					if (i % 100 == 0 || i == queries.rows - 1) {
-//						PrintProgress::PrintProgress(1.0 * (i + 1) / queries.rows);
+						PrintProgress::printProgress(1.0 * (i + 1) / queries.rows);
 					}
 					
         			resultSet.clear();
