@@ -569,11 +569,17 @@ inline size_t LshTable<float>::getKey(const float* feature) const {
 	for (int i = 0; i < random_line.size(); i++) {
 		sum += feature[i] * random_line[i];
 	}
-	int ratio = floor(abs(sum+random_offset) / bucket_size);
-	if (ratio >= bucket_count) {
-		ratio = bucket_count;
+	sum -= min_projection_value;
+	float floatRatio = (sum+random_offset) / bucket_size;
+	if (floatRatio >= bucket_count) {
+		return bucket_count-1;
 	}
-	return ratio;
+	else if (floatRatio < 0) {
+		return 0;
+	}
+	else {
+		return floatRatio;
+	}
 }
 
 template<>

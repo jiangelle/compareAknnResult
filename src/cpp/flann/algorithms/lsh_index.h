@@ -259,11 +259,11 @@ public:
         		KNNResultSet<DistanceType> resultSet(knn);
 #pragma omp for schedule(static) reduction(+:count)
         		for (int i = 0; i < (int)queries.rows; i++) {
-					
+					/*
 					if (i % 100 == 0 || i == queries.rows - 1) {
 						PrintProgress::printProgress(1.0 * (i + 1) / queries.rows);
 					}
-					
+					*/
         			resultSet.clear();
 					clock_t startTime = clock();
         			findNeighbors(resultSet, queries[i], params);
@@ -372,7 +372,6 @@ protected:
         for (unsigned int i = 0; i < table_number_; ++i) {
             lsh::LshTable<ElementType>& table = tables_[i];
             table = lsh::LshTable<ElementType>(veclen_, key_size_);
-
             // Add the features to the table
             table.add(features);
         }
@@ -480,9 +479,9 @@ void LshIndex<L2_Simple<float>>::getNeighbors(const float* vec, ResultSet<float>
 {
 	typename std::vector<lsh::LshTable<float> >::const_iterator table = tables_.begin();
 	typename std::vector<lsh::LshTable<float> >::const_iterator table_end = tables_.end();
-
 	for (; table != table_end; ++table) {
 		size_t key = table->getKey(vec);
+		//printf("key:%d\n", key);
 		const lsh::Bucket* bucket = table->getBucketFromKey(key);
 		if (bucket == 0) continue;
 
@@ -494,12 +493,6 @@ void LshIndex<L2_Simple<float>>::getNeighbors(const float* vec, ResultSet<float>
 		for (; training_index < last_training_index; ++training_index) {
 			// Compute the Euclidean distance
 			float euclidean_distance = distance_(vec, points_[*training_index], veclen_);
-			if (euclidean_distance < 1) {
-				stringstream ss;
-				ss << "euclidean distance < 1 : ";
-				ss << euclidean_distance;
-				throw ss.str();
-			}
 			//printf("euclidean_distance:%f\n", euclidean_distance);
 			result.addPoint(euclidean_distance, *training_index);
 		}
