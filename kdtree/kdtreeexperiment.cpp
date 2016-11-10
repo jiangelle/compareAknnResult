@@ -18,97 +18,72 @@ int elapsedMilliseconds(clock_t startTime) {
 	return 1000.0*(clock() - startTime) / CLOCKS_PER_SEC;
 }
 
-float computePrecision(Matrix<size_t> indice, vector<vector<size_t>> ground) {
-	int count = 0;
-	bool flag = false;
+float computeRecall(Matrix<size_t> indice, vector<vector<size_t>> ground) {
+	int count ;
+	float sum = 0;
+	vector<float> recall;
 	for (size_t row = 0; row < indice.rows; row++) {
+		count = 0;
 		for (size_t col = 0; col < indice.cols; col++) {
-			if (indice[row][col] == ground[row][0]) {
-				flag = true;
-				break;
-			}
-			else {
-				flag = false;
-			}
-		}
-		if (flag == true) {
-			count ++ ;
-		}
-	}
-	return (count*1.0)/indice.rows ;
-}
-
-float computeMAP(Matrix<size_t> indice, vector<vector<size_t>> ground) {
-	vector<float> queryMAP;
-	float sumMAP = 0;
-	float averageMAP;
-	float sum = 0.0;
-	for (int i = 0; i < indice.rows; i++) {
-		averageMAP = 0;
-		sum = 0;
-		for (int j = 1; j <= indice.cols; j++) {
-			for (int k = 1; k <= ground[0].size(); k++) {
-				if (indice[i][j] == ground[i][k]) {
-					sum = sum + (1.0* j)/k;
+			for (size_t g_col = 0; g_col < indice.cols; g_col++) {
+				if (indice[row][col] == ground[row][g_col]) {
+					count ++;
 					break;
 				}
-				else {
-					sum += 0;
-				}
 			}
 		}
-		averageMAP = sum / indice.cols;
-		queryMAP.push_back(averageMAP);
+		recall.push_back((1.0*count) / indice.cols);
 	}
-	for (int i = 0; i < queryMAP.size(); i++) {
-		sumMAP += queryMAP[i];
+	for (int i = 0; i < recall.size(); i++) {
+		sum += recall[i];
 	}
-	return sumMAP / queryMAP.size();
+	return sum/indice.rows ;
 }
 
 void buildAndSearch(Index<Distance> index, const Matrix<float>& queryall,  int checks, vector<vector<size_t>> groundTruthIndice) {
+	ofstream outfile("kdtree_result.txt");
 	clock_t starttime = clock();
+	float recall;
 	index.buildIndex();
 	printf("build index done, %d ms\n", elapsedMilliseconds(starttime));
 	int knn = 100;
-	//for(int knn = 1;knn<=1000;knn+= 50){
 	Matrix<size_t> indices(new size_t[queryall.rows*knn], queryall.rows, knn);
 	Matrix<float> dists(new float[queryall.rows*knn], queryall.rows, knn);
 	starttime = clock();
 	int query_all_neighbor_count = index.knnSearch(queryall, indices, dists, knn, flann::SearchParams(checks));
-	printf("search  %d done, %d ms\n",knn, elapsedMilliseconds(starttime));
-	printf(" query recall for nearest neighbor: %f\n", computePrecision(indices, groundTruthIndice));
-	printf("MAP: %f\n", computeMAP(indices, groundTruthIndice));
-	//}
+	printf("search done, %d s\n",elapsedMilliseconds(starttime)/1000);
+	recall = computeRecall(indices, groundTruthIndice);
+	printf(" query recall for  %d nearest neighbor: %f\n", knn,recall);
+	outfile << knn << " "<< elapsedMilliseconds(starttime) << " "<<recall << endl;
+	outfile.close();
 }
 
 void main(int argc, char** argv)
 {
 	bool isSift = true;
-	clock_t starttime = clock();
 	string directory_prefix = "../../";
 	string base_filename = directory_prefix + (isSift ? "sift_base.fvecs" : "gist_base.fvecs");
 	string query_filename = directory_prefix + (isSift ? "sift_query.fvecs" : "gist_query.fvecs");
-	string learn_filename = directory_prefix + (isSift ? "sift_learn.fvecs" : "gist_learn.fvecs");
 	string groundtruth_filename = directory_prefix + (isSift ? "sift_groundtruth.ivecs" : "gist_groundtruth.ivecs");
 	Matrix<float> dataset = TexmexDataSetReader::readFMatrix(base_filename);
 	Matrix<float> queryall = TexmexDataSetReader::readFMatrix(query_filename);
-	Matrix<float> learndata = TexmexDataSetReader::readFMatrix(learn_filename);
-	printf("read data done, %d ms\n", elapsedMilliseconds(starttime));
 	printf("data rows=%d, cols=%d\n", dataset.rows, dataset.cols);
 	printf("query rows=%d, cols=%d\n", queryall.rows, queryall.cols);
-	printf("learn rows=%d, cols=%d\n", learndata.rows, learndata.cols);
 	vector<vector<size_t>> groundTruthIndices = TexmexDataSetReader::readIvecs(groundtruth_filename);
-	Index<Distance> kdTreeIndex(dataset, KDTreeIndexParams(15));
-	printf("kdtree:\n");
-	buildAndSearch(kdTreeIndex, queryall,256, groundTruthIndices);
-	Index<Distance> lshIndex(dataset, LshIndexParams(8, 50, 0));
-	ofstream outfile;
-	outfile.open("kdtree_result.txt");
-	outfile << "kdtree\n" << endl;
-	outfile.close();
-	printf("lsh:\n");
-	buildAndSearch(lshIndex, queryall,  -1, groundTruthIndices);
+	int tree_number = 30;
+	int checks = 512;
+	for(int i=0;i<=5;i++){
+		tree_number += 2;
+		//checks *= 2;
+	Index<Distance> kdTreeIndex(dataset, KDTreeIndexParams(tree_number));
+	printf("kdtree:%d tree, %d checks\n",tree_number,checks);
+	buildAndSearch(kdTreeIndex, queryall,checks, groundTruthIndices);
+	}
+	//int table_number = 8;
+	//int bucket_size = 50;
+	//Index<Distance> lshIndex(dataset, LshIndexParams(table_number, bucket_size, 0));
+	//printf("lsh:%d teble_number, %d bucket_size\n",table_number,bucket_size);
+	//buildAndSearch(lshIndex, queryall,-1, groundTruthIndices);
 	delete[] dataset.ptr();
 	delete[] queryall.ptr();
 	system("pause");
